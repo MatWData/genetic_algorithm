@@ -110,3 +110,85 @@ def mutation(chromosome: list[int], num_employees: int) -> list[int]:
     return chromosome
 
 
+def roulette_selection(
+        population: list, 
+        performance_matrix: list[list[int]]
+    ) -> list[int]:
+    """
+    Selects a parent from population using roulette wheel selection.
+
+    Args: 
+        population (list): List of chromosomes.
+        performance_matrix (list): 2d list of performance scores for tasks.
+
+    Returns:
+        list: A parent chromosome
+    """
+
+    total_fitness = sum(fitness_function(individual, performance_matrix) for individual in population)
+
+    pick = random.uniform(0, total_fitness)
+    current = 0
+
+    for individual in population:
+        current += fitness_function(individual, performance_matrix)
+        if current >= pick:
+            return individual
+
+def rank_selection(
+        population: list[int],
+        performance_matrix: list[list[int]]
+) -> list[int]:
+    """
+    Selects a parent using rank-based selection.
+
+    Args: 
+        population (list): List of chromosomes.
+        performance_matrix (list): 2D list of performance scores.
+
+    Returns:
+        list: A parent chromosome.
+    """
+    ranked_population = sorted(
+        population, 
+        key=lambda ind: fitness_function(ind, performance_matrix),
+        reverse=True
+    )
+
+    total_ranks = sum(range(1, len(population) +1))
+    rank_probability = [
+        (len(ranked_population) - rank) / total_ranks for rank in range(len(ranked_population))
+    ]
+
+    selected_index = random.choices(
+        range(len(ranked_population)), 
+        weights=rank_probability, 
+        k=1
+    )
+
+    return ranked_population[selected_index[0]]
+
+def tournament_selection(
+        population: list[int], 
+        performance_matrix: list[list[int]], 
+        size: int = 3
+    ) -> list[int]:
+    """
+    Selects a parent using tournament-based selection.
+
+    Args: 
+        population (list): List of chromosomes.
+        performance_matrix (list): 2D list of performance scores.
+        size (int, optional): Number of individuals to compete in the tournament. Defaults to 3.
+
+    Returns:
+        list: A parent chromosome.
+    """
+    tournament = random.sample(population, size)
+
+    parent = max(
+        tournament,
+        key = lambda ind: fitness_function(ind, performance_matrix)         
+    )
+
+    return parent
