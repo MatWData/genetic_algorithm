@@ -1,194 +1,105 @@
 import random
+from performance_matrix import PERFORMANCE_MATRIX
+from utility_functions import (
+    fitness_function,
+    chromosome_encoder,
+    ordered_crossover,
+    mutation,
+    parent_selection
+)
 
-def fitness_function(assignment :list[int], performance_matrix: list[list[int]]) -> int:
+def init_population(size: int) -> list[int]:
     """
-    This function returns the fitness of the indivdual chromosome based on the performance matrix scores. This is used to optimise the algorithm.
-    
-    Args:
-        assignment (list): 1-dimensional list containing which task (index) is performed by which employee (value).
-        performance_matrix (list): The 2-dimensional list containing scores for each task-employee combination.
-
-    Returns:
-        int: The overall score of all assignments. 
-    """
-    # Gets the score from the relevent performance_matrix index and sums them together
-    fitness = sum(
-        performance_matrix[employee][task] for task, employee in enumerate(assignment)
-    )
-    return fitness
-
-
-def chromosome_encoder(performance_matrix: list[list[int]]) -> list[int]:
-    """
-    Generates a random chromosome where each task is addigned to a unique employee.
-
-    Args: 
-        performance_matrix (list): The 2-dimensional list containing scores for each task-employee combination. 
-
-    Returns:
-        list: A list of length 10, where each index represents a task and the value represents the assigned employee
-    """
-    # Select 10 random and unique employees out of the 13
-    # This list will represent which employees (value) are assigned to which task (index)
-    chromosome = random.sample(range(len(performance_matrix)), 10)
-
-    return chromosome
-
-def crossover(parent1: list[int], parent2: list[int], points: int = 1) -> list[int]:
-    """
-    Returns a child from two parents using either one-point or two-points crossover.
+    Initialise population of chromosomes of size: size.
 
     Args:
-        parent1 (list): First parent chromosome.
-        parent2 (list): Second parent chromosome.
-        points (int, optional): The number of crossover points. Valid values are 1 or 2. Defaults to 1.
+        size (int): Number of chromosomes to be initialised in population.
 
     Returns:
-        list: A list representing the child chromosome created from the crossover.
+        list: Population of Chromosomes (list[int]).
     """
+    return [chromosome_encoder(PERFORMANCE_MATRIX) for _ in range(size)]
 
-    # Check that point value is valid
-    if points not in [1,2]:
-        raise ValueError("Points argument must be either 1 or 2.")
-    
-    # Check that parents are same length, avoid potential index out of range errors.
-    if len(parent1) != len(parent2):
-        raise AttributeError(f"Length of parents are different: parent 1 {len(parent1)}, parent 2: {len(parent2)}")
-
-    if points == 1:
-        # One-point crossover
-        crossover_point = random.randint(1, len(parent1) - 1) # Avoid 0 or len as the crossover point
-        child = parent1[:crossover_point] + parent2[crossover_point:]
-    
-    if points == 2:
-        # Two-point crossover
-        # While loop to ensure there is no duplicate int generated
-        crossover_point1, crossover_point2 = 0, 0
-        while crossover_point1 == crossover_point2:
-            crossover_point1 = random.randint(1, len(parent1) - 1)
-            crossover_point2 = random.randint(1, len(parent1) - 1)
-
-        # form child with parent2 center
-        child = parent1[:crossover_point1] + parent2[crossover_point1:crossover_point2] + parent1[crossover_point2:]
-
-    return child
-
-def mutation(chromosome: list[int], num_employees: int) -> list[int]:
+def genetic_algorithm(
+        selection_method: str = "roulette",
+        performance_matrix: list[list[int]] = PERFORMANCE_MATRIX,
+        population_size: int = 20,
+        num_generations: int = 100,
+        crossover_rate: float = 0.8,
+        mutation_rate : float = 0.3,
+        elitism_rate: int = 1,
+):
     """
-    Makes a small change to one of the values in the list.
+    Runs a Genetic Algorithm to find the optimal assignment of employees to tasks based on a performance matrix.
 
     Args:
-        chromosome (list[int]): A list of integers representing the tasks (index) and the employees assigned (value).
-        num_employees (int): Number of employees in population.   
+        selection_method (str): The method used for parent selection. Valid options are "roulette", "rank", or "tournament". Defaults to "roulette".
+        performance_matrix (list[list[int]]): The 2D list representing the performance scores for each employee-task combination. Defaults to PERFORMANCE_MATRIX.
+        population_size (int): The number of individuals in the population. Defaults to 20.
+        num_generations (int): The number of generations to run the algorithm for. Defaults to 100.
+        crossover_rate (float): The probability of performing crossover between two parents. Defaults to 0.8.
+        mutation_rate (float): The probability of performing mutation on an offspring. Defaults to 0.3.
 
-    Returns: 
-        list[int]: The mutated list.
+    Returns:
+        tuple: A tuple containing:
+            - best_solution (list[int]): The chromosome representing the best assignment found.
+            - best_score (int): The fitness score of the best_solution.
+            - population (list[list[int]]): The final population of chromosomes.
     """
-    # Random mutation choice
-    mutation_type = random.choice(["swap", "replace"])
+    # Initialise the population with random chromosomes of size: population_size
+    population = init_population(population_size)
+    num_employees = len(performance_matrix)
 
-    if mutation_type == "swap":
-        # Swap Mutation -> Select two random incidies (tasks) and swap the values (employees)
+    generation_scores = []
 
-        indx1, indx2 = random.sample(range(len(chromosome)), 2)
-        chromosome[indx1], chromosome[indx2] = chromosome[indx2], chromosome[indx1]
+    for _ in range(num_generations):
+        # Sort the population by fitness
+        population = sorted(
+            population,
+            key = lambda x: fitness_function(x, performance_matrix),
+            reverse=True
+        )
 
-    elif mutation_type == "replace":
-        # Replace Mutation -> Selects a random index (task) and replaces with an unassigned employee (value)
+        # Add the generations best fitness to a list for evaluation of progress.
+        best_fitness = fitness_function(population[0], performance_matrix)
+        generation_scores.append(best_fitness)
+        #print(f"Generatiuon {generation} - Best fitness: {best_fitness}")
 
-        # Get random index (employee) to replace
-        emp_to_replace = random.randint(0, len(chromosome) - 1)
+        # Add the best performing individual chromosome to the next generation (elitism)
+        new_population = []
+        new_population.append(population[0])
 
-        # Get a random employee that is NOT currently assigned
-        current_employees = set(chromosome)
-        all_employees = set(range(num_employees))
-        unassigned_employees = list(all_employees - current_employees)
+        # Generation new random individuals to fill the population
+        while len(new_population) < population_size:
 
-        new_employee = random.choice(unassigned_employees)
-        chromosome[emp_to_replace] = new_employee
+            # Select parents using the preffered selection method.
+            parent1 = parent_selection(population, performance_matrix, method=selection_method)
+            parent2 = parent_selection(population, performance_matrix, method=selection_method)
+            
+            # Apply crossover with certain probability
+            if random.random() < crossover_rate:
+                child = ordered_crossover(parent1, parent2)
+            else: 
+                # Copy the parent if there is no crossover this time.
+                child = parent1.copy()
+            
+            # Apply mutation with certain probaility
+            if random.random() < mutation_rate:
+                child = mutation(child, num_employees)
+            
+            # Add child to the population
+            new_population.append(child)
         
-    return chromosome
-
-
-def roulette_selection(
-        population: list, 
-        performance_matrix: list[list[int]]
-    ) -> list[int]:
-    """
-    Selects a parent from population using roulette wheel selection.
-
-    Args: 
-        population (list): List of chromosomes.
-        performance_matrix (list): 2d list of performance scores for tasks.
-
-    Returns:
-        list: A parent chromosome
-    """
-
-    total_fitness = sum(fitness_function(individual, performance_matrix) for individual in population)
-
-    pick = random.uniform(0, total_fitness)
-    current = 0
-
-    for individual in population:
-        current += fitness_function(individual, performance_matrix)
-        if current >= pick:
-            return individual
-
-def rank_selection(
-        population: list[int],
-        performance_matrix: list[list[int]]
-) -> list[int]:
-    """
-    Selects a parent using rank-based selection.
-
-    Args: 
-        population (list): List of chromosomes.
-        performance_matrix (list): 2D list of performance scores.
-
-    Returns:
-        list: A parent chromosome.
-    """
-    ranked_population = sorted(
-        population, 
-        key=lambda ind: fitness_function(ind, performance_matrix),
-        reverse=True
+        population = new_population
+    
+    # Find thebest solution in the final population.
+    best_solution = max(
+        population,
+        key = lambda x: fitness_function(x, performance_matrix)
     )
+    best_score = fitness_function(best_solution, performance_matrix)
 
-    total_ranks = sum(range(1, len(population) +1))
-    rank_probability = [
-        (len(ranked_population) - rank) / total_ranks for rank in range(len(ranked_population))
-    ]
+    #print(f"Best Solution: {best_solution}")
+    print(f"Best Score: {best_score}")
 
-    selected_index = random.choices(
-        range(len(ranked_population)), 
-        weights=rank_probability, 
-        k=1
-    )
-
-    return ranked_population[selected_index[0]]
-
-def tournament_selection(
-        population: list[int], 
-        performance_matrix: list[list[int]], 
-        size: int = 3
-    ) -> list[int]:
-    """
-    Selects a parent using tournament-based selection.
-
-    Args: 
-        population (list): List of chromosomes.
-        performance_matrix (list): 2D list of performance scores.
-        size (int, optional): Number of individuals to compete in the tournament. Defaults to 3.
-
-    Returns:
-        list: A parent chromosome.
-    """
-    tournament = random.sample(population, size)
-
-    parent = max(
-        tournament,
-        key = lambda ind: fitness_function(ind, performance_matrix)         
-    )
-
-    return parent
+    return (best_solution, best_score, population, generation_scores)
