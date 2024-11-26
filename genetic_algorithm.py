@@ -2,23 +2,11 @@ import random
 from performance_matrix import PERFORMANCE_MATRIX
 from utility_functions import (
     fitness_function,
-    chromosome_encoder,
     ordered_crossover,
     mutation,
-    parent_selection
+    parent_selection,
+    init_population
 )
-
-def init_population(size: int) -> list[int]:
-    """
-    Initialise population of chromosomes of size: size.
-
-    Args:
-        size (int): Number of chromosomes to be initialised in population.
-
-    Returns:
-        list: Population of Chromosomes (list[int]).
-    """
-    return [chromosome_encoder(PERFORMANCE_MATRIX) for _ in range(size)]
 
 def genetic_algorithm(
         selection_method: str = "roulette",
@@ -26,8 +14,7 @@ def genetic_algorithm(
         population_size: int = 20,
         num_generations: int = 100,
         crossover_rate: float = 0.8,
-        mutation_rate : float = 0.3,
-        elitism_rate: int = 1,
+        mutation_rate: float = 0.3
 ):
     """
     Runs a Genetic Algorithm to find the optimal assignment of employees to tasks based on a performance matrix.
@@ -41,13 +28,13 @@ def genetic_algorithm(
         mutation_rate (float): The probability of performing mutation on an offspring. Defaults to 0.3.
 
     Returns:
-        tuple: A tuple containing:
+        tuple: A tuple containing
             - best_solution (list[int]): The chromosome representing the best assignment found.
             - best_score (int): The fitness score of the best_solution.
             - population (list[list[int]]): The final population of chromosomes.
     """
     # Initialise the population with random chromosomes of size: population_size
-    population = init_population(population_size)
+    population = init_population(performance_matrix, population_size)
     num_employees = len(performance_matrix)
 
     generation_scores = []

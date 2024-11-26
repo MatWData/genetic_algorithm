@@ -1,5 +1,18 @@
 import random
 
+def init_population(performance_matrix: list, size: int) -> list[int]:
+    """
+    Initialise population of chromosomes of size: size.
+
+    Args:
+        performance_matrix (list[list[int]]): 2D array of performance scores for each employee:task pair.
+        size (int): Number of chromosomes to be initialised in population.
+
+    Returns:
+        list: Population of Chromosomes (list[int]).
+    """
+    return [chromosome_encoder(performance_matrix) for _ in range(size)]
+
 def fitness_function(assignment :list[int], performance_matrix: list[list[int]]) -> int:
     """
     This function returns the fitness of the indivdual chromosome based on the performance matrix scores. This is used to optimise the algorithm.
@@ -7,13 +20,13 @@ def fitness_function(assignment :list[int], performance_matrix: list[list[int]])
     Args:
         assignment (list): 1-dimensional list containing which task (index) is performed by which employee (value).
         performance_matrix (list): The 2-dimensional list containing scores for each task-employee combination.
-
+ 
     Returns:
         int: The overall score of all assignments. 
     """
     # Gets the score from the relevent performance_matrix index and sums them together
     fitness = sum(
-        performance_matrix[employee][task] for task, employee in enumerate(assignment)
+        performance_matrix[employee-1][task] for task, employee in enumerate(assignment)
     )
     return fitness
 
@@ -127,7 +140,11 @@ def parent_selection(
 
     Returns:
         list: A parent chromosome.
+
+    Raises:
+        ValueError: When an invalid method is passed. Valid methods are: "roulette", "rank", "tournament".
     """
+    # Return the correct method selection, or raise error if method invalid.
     if method == 'roulette':
         return roulette_selection(population, performance_matrix)
     elif method == 'rank':
@@ -135,7 +152,7 @@ def parent_selection(
     elif method == 'tournament':
         return tournament_selection(population, performance_matrix)
     else:
-        raise ValueError("Invalid method.")
+        raise ValueError(f"Invalid method: {method}")
 
 
 def roulette_selection(
@@ -178,17 +195,20 @@ def rank_selection(
     Returns:
         list: A parent chromosome.
     """
+    # Sort population by fitness
     ranked_population = sorted(
         population, 
         key=lambda ind: fitness_function(ind, performance_matrix),
         reverse=True
     )
 
+    # Get the probability of choice based on those rankings
     total_ranks = sum(range(1, len(population) +1))
     rank_probability = [
         (len(ranked_population) - rank) / total_ranks for rank in range(len(ranked_population))
     ]
 
+    # Use the probabilities to select one parent.
     selected_index = random.choices(
         range(len(ranked_population)), 
         weights=rank_probability, 
@@ -213,8 +233,8 @@ def tournament_selection(
     Returns:
         list: A parent chromosome.
     """
+    # Pick a random subset of size {size} and return the best one
     tournament = random.sample(population, size)
-
     parent = max(
         tournament,
         key = lambda ind: fitness_function(ind, performance_matrix)         
