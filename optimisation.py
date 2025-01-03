@@ -1,4 +1,5 @@
 # This script uses Optuna to find the best parametes for my genetic algorithm scipt.
+# Learnt about this during my placement year and thought it would be a good idea to implement it here.
 # It takes ~12 minutes to run which may be seen as pointless as genetic algorithms are designed to be better and more efficient than the brute-force alternative
 # After running it has returned the best parametes in best_params.json for viewing.
 # Occured to me during the trials that some of the results acquired by this scipt can be seen as a 'red-herring' because of genetic algorithms natural flaw of finding NEAR optimal solutions as well as THE optimal solution.

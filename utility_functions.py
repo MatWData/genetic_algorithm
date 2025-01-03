@@ -5,7 +5,7 @@ def init_population(performance_matrix: list, size: int) -> list[int]:
     Initialise population of chromosomes of size: size.
 
     Args:
-        performance_matrix (list[list[int]]): 2D array of performance scores for each employee:task pair.
+        performance_matrix (list[list[int]]): 2D list of performance scores for each employee:task pair.
         size (int): Number of chromosomes to be initialised in population.
 
     Returns:
@@ -33,7 +33,7 @@ def fitness_function(assignment :list[int], performance_matrix: list[list[int]])
 
 def chromosome_encoder(performance_matrix: list[list[int]]) -> list[int]:
     """
-    Generates a random chromosome where each task is addigned to a unique employee.
+    Generates a random chromosome where each task is assigned to a unique employee.
 
     Args: 
         performance_matrix (list): The 2-dimensional list containing scores for each task-employee combination. 
